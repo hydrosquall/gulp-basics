@@ -1,5 +1,6 @@
 var gulp = require('gulp');
 var args = require('yargs').argv;         // get all arguments
+var browserSync = require('browser-sync');
 var config = require('./gulp.config')();  // need to invoke to use object. JS out.
 var del = require('del');                 // is a node module, no filestream needed
 // Convention: strips out the "gulp" prefix. Lazy only pulls plugin when needed
@@ -26,7 +27,6 @@ gulp.task('vet', function() {
 
 gulp.task('styles', ['clean-styles'], function() { // second argument is dependencies
     log('Compiling Less--> CSS');
-
     return gulp
         .src(config.less) // !!! ADD CONFIG and TEMP (src and destination)
         .pipe($.plumber())
@@ -85,9 +85,14 @@ gulp.task('serve-dev', ['inject'], function() {
         .on('restart', ['vet'],function(ev) {
             log('*** nodemon restarted');
             log('Files changed on restart \n' + ev);
+            setTimeout(function() {
+                browserSync.notify('reloading now...');
+                browserSync.reload({stream:false});
+            }, config.browserReloadDelay);
         })
         .on('start', function() {
             log('*** nodemon started');
+            startBrowserSync();
         })
         .on('crash', function() {
             log('*** nodemon crashed: script crashed for some reason');
@@ -124,6 +129,46 @@ function errorLogger(error) {
 
 function helloWorld() {
     log('*** Start of World ***');
+}
+
+function changeEvent(event) {
+    var srcPattern = new RegExp('/.*(?=/' + config.source + ')/');
+    log('File ' + event.path.replace(srcPattern, '') + ' ' + event.type);
+}
+
+function startBrowserSync() {
+    if (browserSync.active) {
+        return;
+    }
+
+    log('Starting browser-sync on port '+ port);
+    // From less-watcher
+    gulp.watch([config.less], ['styles'])
+        .on('change', function(event) { changeEvent(event);  });
+
+    var options = {
+        proxy: 'localhost:' + port,
+        port: 3000,
+        files: [
+            config.client + '**/*.*',
+            '!'+ config.less,
+            config.temp + '**/*.css'
+        ], 
+        ghostMode: {
+            clicks: true,
+            location: false,
+            forms: true,
+            scroll: true
+        },
+        injectChanges: true,
+        logFileChanges: true,
+        logLevel: 'debug',
+        logPrefix: 'gulp-patterns',
+        notify: true,
+        reloadDelay:  0//1000
+    };
+
+    browserSync(options);
 }
 /* Notes from before gulp-load-plugins was used */
 // var jshint = require('gulp-jshint');    // Enforcing a styleguide

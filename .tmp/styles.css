@@ -1,6 +1,9 @@
 /* .style-test{
     transform-origin: center bottom;
-} Prove that less compilation is working*/
+} Prove that less compilation is working
+@color_violet: yellow #932ab6; 
+
+*/
 * {
   font-family: "Segoe UI", Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -236,7 +239,7 @@ a.btn {
   border: 0 !important;
 }
 .bviolet {
-  background: #932ab6 !important;
+  background: orange !important;
   color: #fff !important;
   border: 0 !important;
 }
@@ -311,7 +314,7 @@ a.btn {
   color: #fa3031 !important;
 }
 .violet {
-  color: #932ab6 !important;
+  color: orange !important;
 }
 /* Modal */
 .modal-header {
@@ -594,7 +597,7 @@ form label {
 .sidebar .navi > li.nviolet > a:hover,
 .sidebar .navi > li.open.nviolet > a,
 .sidebar .navi > li.current.nviolet > a {
-  background: #932ab6 !important;
+  background: orange !important;
   -webkit-transition: background 0.5s ease;
           transition: background 0.5s ease;
 }
@@ -796,8 +799,8 @@ form label {
   color: #fff;
 }
 .widget.wviolet .widget-head {
-  background-color: #932ab6;
-  border: 1px solid #932ab6;
+  background-color: orange;
+  border: 1px solid orange;
   color: #fff;
 }
 .widget.wred .widget-head .widget-icons a,
