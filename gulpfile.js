@@ -106,7 +106,7 @@ gulp.task('wiredep', function() {
     .src(config.index)
     .pipe(wiredep(options))                // Looks at bower.json and installs dependencies (jquery,bootstrap, etc)
     .pipe($.inject(gulp.src(config.js)))   // Find all files that match config.js and inject them into index
-    .pipe(gulp.dest(config.client));       // TODO
+    .pipe(gulp.dest(config.client));       
 });
 
 // A SUPER function that does wiredep AND styles recompilation
@@ -120,12 +120,13 @@ gulp.task('inject', ['wiredep', 'styles', 'templatecache'], function() {
     .pipe(gulp.dest(config.client));// TODO
 });
 
-gulp.task('optimize', ['inject'], function() {
+gulp.task('optimize', ['inject', 'fonts', 'images'], function() {
     log('Optimizing the javascript, css, html');
 
     var assets = $.useref.assets({searchPath: './'});
     var templateCache = config.temp + config.templateCache.file;
     var cssFilter = $.filter('**/*.css');
+    var jsFilter = $.filter('**/*.js');
 
     return gulp
         .src(config.index)
@@ -135,8 +136,11 @@ gulp.task('optimize', ['inject'], function() {
         } ))
         .pipe(assets)               // concatenate everything in the build:js tags
         .pipe(cssFilter)            // filter down to css
-        // csso
-        .pipe(cssFilter.restore())// filter restore
+        .pipe($.csso())             // csso
+        .pipe(cssFilter.restore())  // css filter restore
+        .pipe(jsFilter)             // filter down to js
+        .pipe($.uglify())           // uglify
+        .pipe(jsFilter.restore())   // js filter restore
         .pipe(assets.restore())     // get index.html back
         .pipe($.useref())           // cut links down to one link for each bunch
         .pipe(gulp.dest(config.build));
