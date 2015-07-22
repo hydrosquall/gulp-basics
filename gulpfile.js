@@ -9,9 +9,9 @@ var port = process.env.PORT || config.defaultPort;
 
 // npm install --save-dev yargs gulp-load-plugins gulp-if gulp-print jshint gulp-util
 
-gulp.task('hello-world', function() {
-    console.log('Our first hellow world gulp task!');
-});
+gulp.task('help', $.taskListing);
+gulp.task('default', ['help']);
+
 
 gulp.task('vet', function() {
     log('Analyzing source with JSHint and JSCS');
@@ -36,13 +36,65 @@ gulp.task('styles', ['clean-styles'], function() { // second argument is depende
         .pipe(gulp.dest(config.temp));
 });
 
+gulp.task('fonts', ['clean-fonts'], function() {
+    log('Copying fonts');
+    return gulp.src(config.fonts)
+        .pipe(gulp.dest(config.build + 'fonts'));
+});
+
+gulp.task('images', ['clean-images'], function() {
+    log('Copying and compressing the images');
+    return gulp.src(config.images)
+        .pipe($.imagemin({optimizationLevel: 4}))   // default is 3
+        .pipe(gulp.dest(config.build + 'images'));
+
+});
+
+gulp.task('clean', function(done) {
+    var delconfig = [].concat(config.build, config.temp); // concat takes strings OR arrays- merges all, beat push
+    log('Cleaning: ' + $.util.colors.blue(delconfig));
+    del(delconfig, done);
+});
+
+// It's useful to design individual tasks so they can be called efficiently
+gulp.task('clean-fonts', function(done) {  // add callback to prevent things from finishing out of order
+    clean(config.build + 'fonts/**/*.*', done);
+});
+
+gulp.task('clean-images', function(done) {  // add callback to prevent things from finishing out of order
+    clean(config.build + 'images/**/*.*', done);
+});
+
 gulp.task('clean-styles', function(done) {  // add callback to prevent things from finishing out of order
-    var files = config.temp + '**/*.css';
+    clean(config.temp + '**/*.css', done);
+});
+
+gulp.task('clean-code', function(done) {  
+    var files = [].concat(
+        config.temp + '**/*.js',
+        config.build + '**/*.html',
+        config.build + 'js/**/*.js'
+    );
     clean(files, done);
 });
 
 gulp.task('less-watcher', function() {
     gulp.watch([config.less], ['styles']); // files to watch, functions to run
+});
+
+gulp.task('templatecache', ['clean-code'], function () {
+    log('Creating AngularJS $templateCache');
+
+    return gulp
+        .src(config.htmltemplates)
+        // Let empty HTMl tags stay
+        .pipe($.minifyHtml({empty: true}))
+        // gulp-angular-templatecache
+        .pipe($.angularTemplatecache(
+            config.templateCache.file,
+            config.templateCache.options))
+        .pipe(gulp.dest(config.temp));
+
 });
 
 gulp.task('wiredep', function() {
@@ -59,7 +111,7 @@ gulp.task('wiredep', function() {
 
 // A SUPER function that does wiredep AND styles recompilation
 // Wiredep and Styles run in parallel before the rest runs
-gulp.task('inject', ['wiredep', 'styles'], function() {
+gulp.task('inject', ['wiredep', 'styles', 'templatecache'], function() {
     log('Wire up the APP css into the html, and call wiredep');
 
     return gulp
@@ -68,17 +120,51 @@ gulp.task('inject', ['wiredep', 'styles'], function() {
     .pipe(gulp.dest(config.client));// TODO
 });
 
-gulp.task('serve-dev', ['inject'], function() {
-    var isDev = true;
+gulp.task('optimize', ['inject'], function() {
+    log('Optimizing the javascript, css, html');
 
+    var assets = $.useref.assets({searchPath: './'});
+    var templateCache = config.temp + config.templateCache.file;
+    var cssFilter = $.filter('**/*.css');
+
+    return gulp
+        .src(config.index)
+        .pipe($.plumber())
+        .pipe($.inject(gulp.src(templateCache, {read:false}), {
+            starttag: '<!-- inject:templates:js -->'
+        } ))
+        .pipe(assets)               // concatenate everything in the build:js tags
+        .pipe(cssFilter)            // filter down to css
+        // csso
+        .pipe(cssFilter.restore())// filter restore
+        .pipe(assets.restore())     // get index.html back
+        .pipe($.useref())           // cut links down to one link for each bunch
+        .pipe(gulp.dest(config.build));
+});
+
+gulp.task('serve-build',['optimize'], function(){
+    serve(false /*isDev*/);
+});
+
+gulp.task('serve-dev', ['inject'], function() {
+    serve(true /*isDev*/);
+});
+
+gulp.task('hello-world', function() {
+    console.log('Our first hellow world gulp task!');
+});
+
+/* Custom Functions */
+
+function serve(isDev) {
     var nodeOptions = {
-        script: config.nodeServer,   // TODO app.js
+        script: config.nodeServer,   
         delayTime: 0.5,
         env: {                                  // Find this in top of app.js
             'PORT': port,
             'NODE_ENV': isDev ? 'dev' : 'build'
         },
-        watch: [config.server]  // TODO define files to restart on
+        watch: [config.server]  // define files to restart on
     };
 
     return $.nodemon(nodeOptions)   // Showing off some event handlers. Optional fn's to advance run in middle
@@ -92,17 +178,18 @@ gulp.task('serve-dev', ['inject'], function() {
         })
         .on('start', function() {
             log('*** nodemon started');
-            startBrowserSync();
+            startBrowserSync(isDev);
         })
         .on('crash', function() {
             log('*** nodemon crashed: script crashed for some reason');
         })
         .on('exit', function() {
             log('*** nodemon exited cleanly');
-        });
-});
+        }); 
+}
 
-/* Custom Functions */
+
+
 function clean(path, done) {
     log('We are cleaning:' + $.util.colors.blue(path));
     del(path, done);
@@ -136,24 +223,26 @@ function changeEvent(event) {
     log('File ' + event.path.replace(srcPattern, '') + ' ' + event.type);
 }
 
-function startBrowserSync() {
+function startBrowserSync(isDev) {
     if (browserSync.active) {
         return;
     }
-
     log('Starting browser-sync on port '+ port);
-    // From less-watcher
-    gulp.watch([config.less], ['styles'])
-        .on('change', function(event) { changeEvent(event);  });
-
+    if(isDev) {
+        gulp.watch([config.less], ['styles'])
+            .on('change', function(event) { changeEvent(event);  });
+    } else {
+        gulp.watch([config.less, config.js, config.html], ['optimize', browserSync.reload])
+            .on('change', function(event) { changeEvent(event);  });
+    }
     var options = {
         proxy: 'localhost:' + port,
         port: 3000,
-        files: [
+        files: isDev ? [
             config.client + '**/*.*',
             '!'+ config.less,
             config.temp + '**/*.css'
-        ], 
+        ] : [], // Need to reload a different way so reoptimize happens before reload 
         ghostMode: {
             clicks: true,
             location: false,

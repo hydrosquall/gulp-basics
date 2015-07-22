@@ -13,18 +13,22 @@
     </style>
     
     <!-- note overrides to include bootstrap are in the bower.json file, for the v3.5 break -->
+    <!-- build:css styles/lib.css-->
     <!-- bower:css -->
     <link rel="stylesheet" href="/bower_components/bootstrap/dist/css/bootstrap.css" />
     <link rel="stylesheet" href="/bower_components/font-awesome/css/font-awesome.css" />
     <link rel="stylesheet" href="/bower_components/toastr/toastr.css" />
     <!-- endbower -->
+    <!-- endbuild -->
     
     <!-- Not injecting with wiredep stylesheet to avoid LESS recompile every time -->
     <!-- Only use super INJECT function if abs. necessary -->
    
+    <!-- build:css styles/app.css-->
     <!-- inject:css -->
     <link rel="stylesheet" href="/.tmp/styles.css">
     <!-- endinject -->
+    <!-- endbuild -->
 </head>
 <body>
     <div>
@@ -40,7 +44,8 @@
             </div>
         </div>
     </div>
-
+    
+    <!-- build:js js/lib.js -->
     <!-- bower:js -->
     <script src="/bower_components/jquery/dist/jquery.js"></script>
     <script src="/bower_components/angular/angular.js"></script>
@@ -52,7 +57,9 @@
     <script src="/bower_components/toastr/toastr.js"></script>
     <script src="/bower_components/angular-animate/angular-animate.js"></script>
     <!-- endbower -->
+    <!-- endbuild -->
 
+    <!-- build:js js/app.js -->
     <!-- inject:js -->
     <script src="/src/client/app/app.module.js"></script>
     <script src="/src/client/app/core/core.module.js"></script>
@@ -83,5 +90,8 @@
     <script src="/src/client/app/blocks/router/router-helper.provider.js"></script>
     <!-- endinject -->
 
+    <!-- inject:templates:js -->
+    <!-- endinject -->
+    <!-- endbuild -->
 </body>
 </html>

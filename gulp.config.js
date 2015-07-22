@@ -12,8 +12,13 @@ module.exports = function() {
             './src/**/*.js',
             './*.js'
         ],
+        build: './build/',                     // choose this folder since node serves from.
         client: client,                        // expose the variable
         css: temp + 'styles.css',
+        fonts: './bower_components/font-awesome/fonts/**/*.*',
+        html: clientApp + '**/*.html',
+        htmltemplates: clientApp + '**/*.html',
+        images: client + 'images/**/*.*',
         index: client + 'index.html',
         js: [
             clientApp + '**/*.module.js',
@@ -25,6 +30,16 @@ module.exports = function() {
         server: server,
         temp: temp,
 
+        // templateCache
+        templateCache: {
+            file: 'templates.js',
+            options: {
+                module: 'app.core',
+                standAlone: false, // make true if you want new module
+                root: 'app/'
+
+            }
+        },
         // browserSync
         browserReloadDelay: 1000,
         /**
