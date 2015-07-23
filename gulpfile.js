@@ -168,14 +168,14 @@ gulp.task('build', ['optimize', 'images', 'fonts'], function() {
 });
 
 // Take advantage of gulp 4's new apis
-gulp.task('build-gulp-four',
+/*gulp.task('build-gulp-four',
     gulp.series(
         gulp.parallel('vet', 'test'),
         gulp.parallel('wiredep', 'styles', 'templatecache'),
         'optimize'
         )
     );
-
+*/
 gulp.task('optimize', ['inject', 'test'], function() {
     log('Optimizing the javascript, css, html');
 
