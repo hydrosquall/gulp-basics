@@ -1,6 +1,7 @@
 module.exports = function() {
     var client = './src/client/';
     var clientApp = client + 'app/';
+    var root = './';
     var server = './src/server/';
     var temp = './.tmp/';          // Note it will create this folder for you!;
 
@@ -27,8 +28,15 @@ module.exports = function() {
         ],
         // could also make array like alljs if there were multiple files to compile.
         less: client + 'styles/styles.less',
+        root: root,
         server: server,
         temp: temp,
+
+        // Optimized Filenames
+        optimized: {
+            app: 'app.js',
+            lib: 'lib.js'
+        },
 
         // templateCache
         templateCache: {
@@ -47,12 +55,15 @@ module.exports = function() {
         * Bower and NPM Locations
         *
         **/
-        bower:{
+        bower: {
             bowerJson:'./bower.json',
             directory: './bower_components/',
             ignorePath: '../..'
         },
-
+        packages :[
+            './package.json',
+            './bower.json'
+        ],
         /**
         *
         * Node Settings

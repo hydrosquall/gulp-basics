@@ -89,7 +89,6 @@ gulp.task('templatecache', ['clean-code'], function () {
         .src(config.htmltemplates)
         // Let empty HTMl tags stay
         .pipe($.minifyHtml({empty: true}))
-        // gulp-angular-templatecache
         .pipe($.angularTemplatecache(
             config.templateCache.file,
             config.templateCache.options))
@@ -126,7 +125,8 @@ gulp.task('optimize', ['inject', 'fonts', 'images'], function() {
     var assets = $.useref.assets({searchPath: './'});
     var templateCache = config.temp + config.templateCache.file;
     var cssFilter = $.filter('**/*.css');
-    var jsFilter = $.filter('**/*.js');
+    var jsLibFilter = $.filter('**/' + config.optimized.lib);
+    var jsAppFilter = $.filter('**/'+ config.optimized.app);
 
     return gulp
         .src(config.index)
@@ -138,12 +138,52 @@ gulp.task('optimize', ['inject', 'fonts', 'images'], function() {
         .pipe(cssFilter)            // filter down to css
         .pipe($.csso())             // csso
         .pipe(cssFilter.restore())  // css filter restore
-        .pipe(jsFilter)             // filter down to js
-        .pipe($.uglify())           // uglify
-        .pipe(jsFilter.restore())   // js filter restore
+
+        .pipe(jsLibFilter)           // filter down lib js
+        .pipe($.uglify())            // uglify
+        .pipe(jsLibFilter.restore()) // js filter restore
+
+        .pipe(jsAppFilter)           //  js filter restore
+        .pipe($.ngAnnotate())        // for annotating our angular stuff with injection help
+        .pipe($.uglify())            // uglify
+        .pipe(jsAppFilter.restore()) //  js filter restore
+        // cache busting
+        .pipe($.rev())              // app.js -? ap-2390asdf.js
         .pipe(assets.restore())     // get index.html back
         .pipe($.useref())           // cut links down to one link for each bunch
+        .pipe($.revReplace())       // edit filelinks
+        .pipe(gulp.dest(config.build))
+        .pipe($.rev.manifest())
         .pipe(gulp.dest(config.build));
+});
+
+/**
+ *  Bump the version
+ * --type=pre will bump the prerelease version *.*.*-x
+ * --type=patch or no flag will bump the patch version *.*.x
+ * --type=minor will bump the minor version *.x.*
+ * --type=major will bump the major version x.*.*
+ * --type=version:1.2.3 will bump to a specific version and ignore other flags
+ */
+gulp.task('bump', function(){
+   var msg = 'Bumping versions';
+   var type = args.type;
+   var version = args.version;
+   var options = {};
+   if (version) {
+        options.version = version;
+        msg += ' to ' + version;
+   } else {
+        options.type = type;
+        msg += ' for a ' + type;
+   }
+   log(msg);
+
+   return gulp
+    .src(config.packages)
+    .pipe($.bump(options))
+    .pipe($.print())     // See name of file being worked on
+    .pipe(gulp.dest(config.root));
 });
 
 gulp.task('serve-build',['optimize'], function(){
